@@ -1024,6 +1024,31 @@ enum perf_event_task_context {
 	perf_nr_task_contexts,
 };
 
+enum fs_op {
+	FOP_OPEN = 0,
+	FOP_READ,
+	FOP_WRITE,
+	FOP_UNKNOWN,
+	FOP_COUNT,
+};
+
+enum fs_latency {
+	VFS_LAT,
+	FS_IND_MD_LAT,
+	FS_DEP_MD_LAT,
+	FS_DATA_LAT,
+	FS_COPY_LAT,
+	LAT_COUNT,
+};
+
+struct fs_op_stat {
+	u32 op_cnt[FOP_COUNT];
+	s64 op_lat[FOP_COUNT][LAT_COUNT];
+	ktime_t start_at;
+	enum fs_op op;
+};
+
+
 struct task_struct {
 	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
 	void *stack;
@@ -1406,6 +1431,7 @@ struct task_struct {
 	unsigned int	sequential_io;
 	unsigned int	sequential_io_avg;
 #endif
+	struct fs_op_stat fs_stat;
 };
 
 /* Future-safe accessor for struct task_struct's cpus_allowed. */

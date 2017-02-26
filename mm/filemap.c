@@ -695,6 +695,9 @@ struct page *find_get_page(struct address_space *mapping, pgoff_t offset)
 {
 	void **pagep;
 	struct page *page;
+	
+	ktime_t now;
+	ktime_t start_at = ktime_get();
 
 	rcu_read_lock();
 repeat:
@@ -729,7 +732,9 @@ repeat:
 	}
 out:
 	rcu_read_unlock();
-
+	now = ktime_get();
+	current->fs_stat.op_lat[current->fs_stat.op][FS_IND_MD_LAT] 
+			+= ktime_to_ns(ktime_sub(now, start_at));		
 	return page;
 }
 EXPORT_SYMBOL(find_get_page);
@@ -1318,6 +1323,8 @@ int file_read_actor(read_descriptor_t *desc, struct page *page,
 {
 	char *kaddr;
 	unsigned long left, count = desc->count;
+	ktime_t now;
+	ktime_t start_at = ktime_get();
 
 	if (size > count)
 		size = count;
@@ -1348,6 +1355,10 @@ success:
 	desc->count = count - size;
 	desc->written += size;
 	desc->arg.buf += size;
+	
+	now = ktime_get();
+	current->fs_stat.op_lat[current->fs_stat.op][FS_COPY_LAT] 
+			+= ktime_to_ns(ktime_sub(now, start_at));		
 	return size;
 }
 

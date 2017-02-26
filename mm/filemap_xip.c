@@ -62,6 +62,8 @@ do_xip_mapping_read(struct address_space *mapping,
 	unsigned long offset;
 	loff_t isize, pos;
 	size_t copied = 0, error = 0;
+	ktime_t now;
+	ktime_t start_at;
 
 	BUG_ON(!mapping->a_ops->get_xip_mem);
 
@@ -120,9 +122,15 @@ do_xip_mapping_read(struct address_space *mapping,
 		 * "pos" here (the actor routine has to update the user buffer
 		 * pointers and the remaining count).
 		 */
-		if (!zero)
+		if (!zero){
+			start_at = ktime_get();
+
 			left = __copy_to_user(buf+copied, xip_mem+offset, nr);
-		else
+
+			now = ktime_get();
+			current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT] 
+					+= ktime_to_ns(ktime_sub(now, start_at));		
+		}else
 			left = __clear_user(buf + copied, nr);
 
 		if (left) {

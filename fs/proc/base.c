@@ -2556,6 +2556,26 @@ static int proc_pid_personality(struct seq_file *m, struct pid_namespace *ns,
 	return err;
 }
 
+static int proc_pid_fs_stat(struct seq_file *m, struct pid_namespace *ns,
+				struct pid *pid, struct task_struct *task)
+{
+
+		seq_printf(m, "open %u %lld %lld %lld %lld %lld\n",
+			task->fs_stat.op_cnt[FOP_OPEN], 
+			task->fs_stat.op_lat[FOP_OPEN][VFS_LAT],
+			task->fs_stat.op_lat[FOP_OPEN][FS_IND_MD_LAT],
+			task->fs_stat.op_lat[FOP_OPEN][FS_DEP_MD_LAT],
+			task->fs_stat.op_lat[FOP_OPEN][FS_DATA_LAT],
+			task->fs_stat.op_lat[FOP_OPEN][FS_COPY_LAT]);
+		seq_printf(m, "read %u %lld %lld %lld %lld %lld\n",
+			task->fs_stat.op_cnt[FOP_READ], 
+			task->fs_stat.op_lat[FOP_READ][VFS_LAT],
+			task->fs_stat.op_lat[FOP_READ][FS_IND_MD_LAT],
+			task->fs_stat.op_lat[FOP_READ][FS_DEP_MD_LAT],
+			task->fs_stat.op_lat[FOP_READ][FS_DATA_LAT],
+			task->fs_stat.op_lat[FOP_READ][FS_COPY_LAT]);
+		return 0;
+}
 /*
  * Thread groups
  */
@@ -2576,6 +2596,7 @@ static const struct pid_entry tgid_base_stuff[] = {
 	REG("environ",    S_IRUSR, proc_environ_operations),
 	INF("auxv",       S_IRUSR, proc_pid_auxv),
 	ONE("status",     S_IRUGO, proc_pid_status),
+	ONE("fs_stat",     S_IRUGO, proc_pid_fs_stat),
 	ONE("personality", S_IRUGO, proc_pid_personality),
 	INF("limits",	  S_IRUGO, proc_pid_limits),
 #ifdef CONFIG_SCHED_DEBUG

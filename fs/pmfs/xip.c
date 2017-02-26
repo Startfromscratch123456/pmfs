@@ -446,6 +446,8 @@ int pmfs_get_xip_mem(struct address_space *mapping, pgoff_t pgoff, int create,
 	int rc;
 	sector_t block = 0;
 	struct inode *inode = mapping->host;
+	ktime_t now;
+	ktime_t start_at = ktime_get();
 
 	rc = __pmfs_get_block(inode, pgoff, create, &block);
 	if (rc) {
@@ -458,6 +460,9 @@ int pmfs_get_xip_mem(struct address_space *mapping, pgoff_t pgoff, int create,
 
 	*kmem = pmfs_get_block(inode->i_sb, block);
 	*pfn = pmfs_get_pfn(inode->i_sb, block);
+
+	current->fs_stat.op_lat[current->fs_stat.op][FS_IND_MD_LAT] 
+			+= ktime_to_ns(ktime_sub(now, start_at));		
 
 	pmfs_dbg_mmapvv("[%s:%d] sb->physaddr(0x%llx), block(0x%lx),"
 		" pgoff(0x%lx), flag(0x%x), PFN(0x%lx)\n", __func__, __LINE__,

@@ -41,38 +41,46 @@
  * status of that page is hard.  See end_buffer_async_read() for the details.
  * There is no point in duplicating all that complexity.
  */
-static void mpage_end_io(struct bio *bio, int err)
-{
-	const int uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
-	struct bio_vec *bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
+	static void mpage_end_io(struct bio *bio, int err)
+	{
+		const int uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
+		struct bio_vec *bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
+		ktime_t now;
 
-	do {
-		struct page *page = bvec->bv_page;
+		do {
+			struct page *page = bvec->bv_page;
 
-		if (--bvec >= bio->bi_io_vec)
-			prefetchw(&bvec->bv_page->flags);
-		if (bio_data_dir(bio) == READ) {
-			if (uptodate) {
-				SetPageUptodate(page);
-			} else {
-				ClearPageUptodate(page);
-				SetPageError(page);
+			if (--bvec >= bio->bi_io_vec)
+				prefetchw(&bvec->bv_page->flags);
+			if (bio_data_dir(bio) == READ) {
+
+				now = ktime_get();
+				current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT] 
+						+= ktime_to_ns(ktime_sub(now, current->fs_stat.start_at));		
+		
+				if (uptodate) {
+					SetPageUptodate(page);
+				} else {
+					ClearPageUptodate(page);
+					SetPageError(page);
+				}
+				unlock_page(page);
+			} else { /* bio_data_dir(bio) == WRITE */
+				if (!uptodate) {
+					SetPageError(page);
+					if (page->mapping)
+						set_bit(AS_EIO, &page->mapping->flags);
+				}
+				end_page_writeback(page);
 			}
-			unlock_page(page);
-		} else { /* bio_data_dir(bio) == WRITE */
-			if (!uptodate) {
-				SetPageError(page);
-				if (page->mapping)
-					set_bit(AS_EIO, &page->mapping->flags);
-			}
-			end_page_writeback(page);
-		}
-	} while (bvec >= bio->bi_io_vec);
+		} while (bvec >= bio->bi_io_vec);
 	bio_put(bio);
 }
 
 static struct bio *mpage_bio_submit(int rw, struct bio *bio)
 {
+	
+	current->fs_stat.start_at = ktime_get();
 	bio->bi_end_io = mpage_end_io;
 	submit_bio(rw, bio);
 	return NULL;

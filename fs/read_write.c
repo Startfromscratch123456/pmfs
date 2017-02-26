@@ -382,7 +382,12 @@ EXPORT_SYMBOL(do_sync_read);
 ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 {
 	ssize_t ret;
-
+	ktime_t now;
+	ktime_t start_read_at = ktime_get();
+	
+	current->fs_stat.op = FOP_READ;
+	current->fs_stat.op_cnt[current->fs_stat.op] ++; 
+	
 	if (!(file->f_mode & FMODE_READ))
 		return -EBADF;
 	if (!file->f_op || (!file->f_op->read && !file->f_op->aio_read))
@@ -403,7 +408,21 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 		}
 		inc_syscr(current);
 	}
+	
 
+	now = ktime_get();
+    
+	current->fs_stat.op_lat[current->fs_stat.op][VFS_LAT] 
+			+= ktime_to_ns(ktime_sub(now, start_read_at));		
+	current->fs_stat.op = FOP_UNKNOWN;
+	//printk(KERN_DEBUG "%d read %u %lld %lld %lld %lld %lld\n",
+	//	   	current->pid, 
+	//		current->fs_stat.op_cnt[current->fs_stat.op], 
+	//		current->fs_stat.op_lat[current->fs_stat.op][VFS_LAT],
+	//		current->fs_stat.op_lat[current->fs_stat.op][FS_IND_MD_LAT],
+	//		current->fs_stat.op_lat[current->fs_stat.op][FS_DEP_MD_LAT],
+	//		current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT],
+	//		current->fs_stat.op_lat[current->fs_stat.op][FS_COPY_LAT]);
 	return ret;
 }
 

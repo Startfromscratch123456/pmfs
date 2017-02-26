@@ -1303,14 +1303,23 @@ static struct dentry *lookup_real(struct inode *dir, struct dentry *dentry,
 				  unsigned int flags)
 {
 	struct dentry *old;
+	ktime_t now;
+	ktime_t start_at;
 
 	/* Don't create child dentry for a dead directory. */
 	if (unlikely(IS_DEADDIR(dir))) {
 		dput(dentry);
 		return ERR_PTR(-ENOENT);
 	}
+	start_at = ktime_get();
 
 	old = dir->i_op->lookup(dir, dentry, flags);
+
+	now = ktime_get();
+    
+	current->fs_stat.op_lat[current->fs_stat.op][FS_DEP_MD_LAT]
+			+= ktime_to_ns(ktime_sub(now, start_at));		
+
 	if (unlikely(old)) {
 		dput(dentry);
 		dentry = old;
@@ -2970,6 +2979,8 @@ static struct file *path_openat(int dfd, struct filename *pathname,
 	struct path path;
 	int opened = 0;
 	int error;
+	ktime_t now;
+	ktime_t start_at;
 
 	file = get_empty_filp();
 	if (IS_ERR(file))
@@ -2987,7 +2998,15 @@ static struct file *path_openat(int dfd, struct filename *pathname,
 		goto out;
 
 	current->total_link_count = 0;
+
+	start_at = ktime_get(); 
+
 	error = link_path_walk(pathname->name, nd);
+	
+	now = ktime_get();
+	current->fs_stat.op_lat[current->fs_stat.op][FS_IND_MD_LAT] 
+			+= ktime_to_ns(ktime_sub(now, start_at));
+
 	if (unlikely(error))
 		goto out;
 

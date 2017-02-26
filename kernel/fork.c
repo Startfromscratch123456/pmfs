@@ -1559,6 +1559,17 @@ struct task_struct *fork_idle(int cpu)
 	return task;
 }
 
+
+static inline void fs_stat_init(struct fs_op_stat *pstat){
+	int i,j;
+	for(i = 0; i < FOP_COUNT; i++){
+		pstat->op_cnt[i] = 0;
+		for(j = 0; j< LAT_COUNT; j++){
+			pstat->op_lat[i][j] = 0;
+		}
+	}
+}
+
 /*
  *  Ok, this is the main fork-routine.
  *
@@ -1612,8 +1623,9 @@ long do_fork(unsigned long clone_flags,
 		struct completion vfork;
 
 		trace_sched_process_fork(current, p);
-
 		nr = task_pid_vnr(p);
+
+		fs_stat_init(&(p->fs_stat));
 
 		if (clone_flags & CLONE_PARENT_SETTID)
 			put_user(nr, parent_tidptr);

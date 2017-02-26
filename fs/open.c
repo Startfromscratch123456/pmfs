@@ -941,12 +941,16 @@ EXPORT_SYMBOL(file_open_root);
 long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 {
 	struct open_flags op;
+	ktime_t now;
+	ktime_t start_open_at = ktime_get();
 	int fd = build_open_flags(flags, mode, &op);
 	struct filename *tmp;
-
+	current->fs_stat.op = FOP_OPEN;
+	current->fs_stat.op_cnt[current->fs_stat.op] ++; 
+//	printk(KERN_DEBUG "%d begin open\n", current->pid);
 	if (fd)
 		return fd;
-
+	
 	tmp = getname(filename);
 	if (IS_ERR(tmp))
 		return PTR_ERR(tmp);
@@ -963,6 +967,21 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 		}
 	}
 	putname(tmp);
+	
+	now = ktime_get();
+	current->fs_stat.op_lat[current->fs_stat.op][VFS_LAT] 
+			+= ktime_to_ns(ktime_sub(now, start_open_at));		
+	current->fs_stat.op = FOP_UNKNOWN;
+
+	//	printk(KERN_DEBUG "%d open %u %lld %lld %lld %lld %lld\n",
+//		   	current->pid, 
+//			current->fs_stat.op_cnt[current->fs_stat.op], 
+//			current->fs_stat.op_lat[current->fs_stat.op][VFS_LAT],
+//			current->fs_stat.op_lat[current->fs_stat.op][FS_IND_MD_LAT],
+//			current->fs_stat.op_lat[current->fs_stat.op][FS_DEP_MD_LAT],
+//			current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT],
+//			current->fs_stat.op_lat[current->fs_stat.op][FS_COPY_LAT]);
+//	printk(KERN_DEBUG "%d end open\n", current->pid);
 	return fd;
 }
 

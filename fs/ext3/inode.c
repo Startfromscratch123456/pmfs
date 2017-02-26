@@ -1021,6 +1021,8 @@ out:
 static int ext3_get_block(struct inode *inode, sector_t iblock,
 			struct buffer_head *bh_result, int create)
 {
+	ktime_t now;
+	ktime_t start_at = ktime_get();
 	handle_t *handle = ext3_journal_current_handle();
 	int ret = 0, started = 0;
 	unsigned max_blocks = bh_result->b_size >> inode->i_blkbits;
@@ -1046,6 +1048,10 @@ static int ext3_get_block(struct inode *inode, sector_t iblock,
 	if (started)
 		ext3_journal_stop(handle);
 out:
+	
+	now = ktime_get();
+	current->fs_stat.op_lat[current->fs_stat.op][FS_DEP_MD_LAT] 
+			+= ktime_to_ns(ktime_sub(now, start_at));		
 	return ret;
 }
 

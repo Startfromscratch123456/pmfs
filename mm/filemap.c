@@ -1222,7 +1222,7 @@ page_ok:
 
 page_not_up_to_date:
 		/* Get exclusive access to the page ... */
-		error = lock_page_killable(page);
+		error = lock_page_killable(page);//Here, wait ... disk I/O 
 		if (unlikely(error))
 			goto readpage_error;
 
@@ -1259,7 +1259,7 @@ readpage:
 		}
 
 		if (!PageUptodate(page)) {
-			error = lock_page_killable(page);
+			error = lock_page_killable(page); //Here, wait...disk I/O
 			if (unlikely(error))
 				goto readpage_error;
 			if (!PageUptodate(page)) {

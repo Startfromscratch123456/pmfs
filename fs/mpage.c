@@ -47,17 +47,18 @@
 		struct bio_vec *bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
 		ktime_t now;
 
+		if (bio_data_dir(bio) == READ) {
+			now = ktime_get();
+			current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT] 
+				+= ktime_to_ns(ktime_sub(now, current->fs_stat.start_at));	
+		}
+
 		do {
 			struct page *page = bvec->bv_page;
 
 			if (--bvec >= bio->bi_io_vec)
 				prefetchw(&bvec->bv_page->flags);
 			if (bio_data_dir(bio) == READ) {
-
-				now = ktime_get();
-				current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT] 
-						+= ktime_to_ns(ktime_sub(now, current->fs_stat.start_at));		
-		
 				if (uptodate) {
 					SetPageUptodate(page);
 				} else {

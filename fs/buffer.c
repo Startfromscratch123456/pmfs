@@ -303,6 +303,7 @@ static void end_buffer_async_read(struct buffer_head *bh, int uptodate)
 	struct buffer_head *tmp;
 	struct page *page;
 	int page_uptodate = 1;
+	ktime_t now;
 
 	BUG_ON(!buffer_async_read(bh));
 
@@ -345,6 +346,10 @@ static void end_buffer_async_read(struct buffer_head *bh, int uptodate)
 	 */
 	if (page_uptodate && !PageError(page))
 		SetPageUptodate(page);
+	
+	now = ktime_get();
+	current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT] 
+				+= ktime_to_ns(ktime_sub(now, current->fs_stat.start_at));	
 	unlock_page(page);
 	return;
 
@@ -2222,6 +2227,7 @@ int block_read_full_page(struct page *page, get_block_t *get_block)
 	 * inside the buffer lock in case another process reading
 	 * the underlying blockdev brought it uptodate (the sct fix).
 	 */
+	current->fs_stat.start_at = ktime_get();
 	for (i = 0; i < nr; i++) {
 		bh = arr[i];
 		if (buffer_uptodate(bh))
@@ -3052,7 +3058,7 @@ int _submit_bh(int rw, struct buffer_head *bh, unsigned long bio_flags)
 EXPORT_SYMBOL_GPL(_submit_bh);
 
 int submit_bh(int rw, struct buffer_head *bh)
-{
+{	
 	return _submit_bh(rw, bh, 0);
 }
 EXPORT_SYMBOL(submit_bh);

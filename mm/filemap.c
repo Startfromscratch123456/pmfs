@@ -1113,6 +1113,7 @@ static void do_generic_file_read(struct file *filp, loff_t *ppos,
 	unsigned long offset;      /* offset into pagecache page */
 	unsigned int prev_offset;
 	int error;
+	ktime_t start_at, now;
 
 	index = *ppos >> PAGE_CACHE_SHIFT;
 	prev_index = ra->prev_pos >> PAGE_CACHE_SHIFT;
@@ -1222,7 +1223,11 @@ page_ok:
 
 page_not_up_to_date:
 		/* Get exclusive access to the page ... */
+		start_at = ktime_get();
 		error = lock_page_killable(page);//Here, wait ... disk I/O 
+		now = ktime_get();
+		current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT] 
+				+= ktime_to_ns(ktime_sub(now, start_at));	
 		if (unlikely(error))
 			goto readpage_error;
 
@@ -1259,7 +1264,12 @@ readpage:
 		}
 
 		if (!PageUptodate(page)) {
+			start_at = ktime_get();
 			error = lock_page_killable(page); //Here, wait...disk I/O
+			now = ktime_get();
+			current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT] 
+				+= ktime_to_ns(ktime_sub(now, start_at));	
+
 			if (unlikely(error))
 				goto readpage_error;
 			if (!PageUptodate(page)) {

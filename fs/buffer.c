@@ -347,9 +347,9 @@ static void end_buffer_async_read(struct buffer_head *bh, int uptodate)
 	if (page_uptodate && !PageError(page))
 		SetPageUptodate(page);
 	
-	now = ktime_get();
-	current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT] 
-				+= ktime_to_ns(ktime_sub(now, current->fs_stat.start_at));	
+//	now = ktime_get();
+//	current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT] 
+//				+= ktime_to_ns(ktime_sub(now, current->fs_stat.start_at));	
 	unlock_page(page);
 	return;
 
@@ -2227,7 +2227,7 @@ int block_read_full_page(struct page *page, get_block_t *get_block)
 	 * inside the buffer lock in case another process reading
 	 * the underlying blockdev brought it uptodate (the sct fix).
 	 */
-	current->fs_stat.start_at = ktime_get();
+	//current->fs_stat.start_at = ktime_get();
 	for (i = 0; i < nr; i++) {
 		bh = arr[i];
 		if (buffer_uptodate(bh))

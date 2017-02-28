@@ -1246,6 +1246,73 @@ static const struct file_operations proc_fault_inject_operations = {
 };
 #endif
 
+static int fs_stat_show(struct seq_file *m, void *v)
+{
+	struct inode *inode = m->private;
+	struct task_struct *task;
+
+	task = get_proc_task(inode);
+	if (!task)
+		return -ESRCH;
+	
+	seq_printf(m, "open %u %lld %lld %lld %lld %lld\n",
+		task->fs_stat.op_cnt[FOP_OPEN], 
+		task->fs_stat.op_lat[FOP_OPEN][VFS_LAT],
+		task->fs_stat.op_lat[FOP_OPEN][FS_IND_MD_LAT],
+		task->fs_stat.op_lat[FOP_OPEN][FS_DEP_MD_LAT],
+		task->fs_stat.op_lat[FOP_OPEN][FS_DATA_LAT],
+		task->fs_stat.op_lat[FOP_OPEN][FS_COPY_LAT]);
+	seq_printf(m, "read %u %lld %lld %lld %lld %lld\n",
+		task->fs_stat.op_cnt[FOP_READ], 
+		task->fs_stat.op_lat[FOP_READ][VFS_LAT],
+		task->fs_stat.op_lat[FOP_READ][FS_IND_MD_LAT],
+		task->fs_stat.op_lat[FOP_READ][FS_DEP_MD_LAT],
+		task->fs_stat.op_lat[FOP_READ][FS_DATA_LAT],
+		task->fs_stat.op_lat[FOP_READ][FS_COPY_LAT]);
+
+	put_task_struct(task);
+
+	return 0;
+}
+
+static ssize_t
+fs_stat_write(struct file *file, const char __user *buf,
+	    size_t count, loff_t *offset)
+{
+	struct inode *inode = file_inode(file);
+	struct task_struct *task;
+	struct fs_op_stat *pstat;
+	int i,j;
+
+	task = get_proc_task(inode);
+	if (!task)
+		return -ESRCH;
+
+	pstat = &task->fs_stat;
+	for(i = 0; i < FOP_COUNT; i++){
+		pstat->op_cnt[i] = 0;
+		for(j = 0; j< LAT_COUNT; j++){
+			pstat->op_lat[i][j] = 0;
+		}
+	}
+
+	put_task_struct(task);
+
+	return count;
+}
+
+static int fs_stat_open(struct inode *inode, struct file *filp)
+{
+	return single_open(filp, fs_stat_show, inode);
+}
+
+static const struct file_operations proc_pid_fs_stat_operations = {
+	.open		= fs_stat_open,
+	.read		= seq_read,
+	.write		= fs_stat_write,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
 
 #ifdef CONFIG_SCHED_DEBUG
 /*
@@ -2555,7 +2622,7 @@ static int proc_pid_personality(struct seq_file *m, struct pid_namespace *ns,
 	}
 	return err;
 }
-
+/*
 static int proc_pid_fs_stat(struct seq_file *m, struct pid_namespace *ns,
 				struct pid *pid, struct task_struct *task)
 {
@@ -2576,6 +2643,8 @@ static int proc_pid_fs_stat(struct seq_file *m, struct pid_namespace *ns,
 			task->fs_stat.op_lat[FOP_READ][FS_COPY_LAT]);
 		return 0;
 }
+*/
+
 /*
  * Thread groups
  */
@@ -2596,7 +2665,7 @@ static const struct pid_entry tgid_base_stuff[] = {
 	REG("environ",    S_IRUSR, proc_environ_operations),
 	INF("auxv",       S_IRUSR, proc_pid_auxv),
 	ONE("status",     S_IRUGO, proc_pid_status),
-	ONE("fs_stat",     S_IRUGO, proc_pid_fs_stat),
+	REG("fs_stat",     S_IRUGO|S_IWUGO, proc_pid_fs_stat_operations),
 	ONE("personality", S_IRUGO, proc_pid_personality),
 	INF("limits",	  S_IRUGO, proc_pid_limits),
 #ifdef CONFIG_SCHED_DEBUG

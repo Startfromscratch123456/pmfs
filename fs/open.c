@@ -973,15 +973,16 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 			+= ktime_to_ns(ktime_sub(now, start_open_at));		
 	current->fs_stat.op = FOP_UNKNOWN;
 
-	//	printk(KERN_DEBUG "%d open %u %lld %lld %lld %lld %lld\n",
-//		   	current->pid, 
-//			current->fs_stat.op_cnt[current->fs_stat.op], 
-//			current->fs_stat.op_lat[current->fs_stat.op][VFS_LAT],
-//			current->fs_stat.op_lat[current->fs_stat.op][FS_IND_MD_LAT],
-//			current->fs_stat.op_lat[current->fs_stat.op][FS_DEP_MD_LAT],
-//			current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT],
-//			current->fs_stat.op_lat[current->fs_stat.op][FS_COPY_LAT]);
-//	printk(KERN_DEBUG "%d end open\n", current->pid);
+	//	printk(KERN_DEBUG "%d %s open %u %lld %lld %lld %lld %lld\n",
+	//		current->pid,
+	//	   	current->comm, 
+	//		current->fs_stat.op_cnt[current->fs_stat.op], 
+	//		current->fs_stat.op_lat[current->fs_stat.op][VFS_LAT],
+	//		current->fs_stat.op_lat[current->fs_stat.op][FS_IND_MD_LAT],
+	//		current->fs_stat.op_lat[current->fs_stat.op][FS_DEP_MD_LAT],
+	//		current->fs_stat.op_lat[current->fs_stat.op][FS_DATA_LAT],
+	//		current->fs_stat.op_lat[current->fs_stat.op][FS_COPY_LAT]);
+	//printk(KERN_DEBUG "%d end open\n", current->pid);
 	return fd;
 }
 

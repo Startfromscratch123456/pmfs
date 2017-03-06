@@ -462,7 +462,7 @@ int pmfs_get_xip_mem(struct address_space *mapping, pgoff_t pgoff, int create,
 	*pfn = pmfs_get_pfn(inode->i_sb, block);
 	
 	now = ktime_get();
-	current->fs_stat.op_lat[current->fs_stat.op][FS_IND_MD_LAT] 
+	current->fs_stat.op_lat[current->fs_stat.op][FS_DEP_MD_LAT] 
 			+= ktime_to_ns(ktime_sub(now, start_at));		
 
 	pmfs_dbg_mmapvv("[%s:%d] sb->physaddr(0x%llx), block(0x%lx),"
